@@ -69,9 +69,10 @@ function searchEnv(config, token, envName) {
         reject(`搜索环境变量失败：${error}`);
       } else {
         try {
-          const result = JSON.parse(data);
-          const idList = result.data.map(env => env.id);
-          const valueList = result.data.map(env => env.value);
+          console.log('API Response:', response.data);
+          // const result = JSON.parse(data);
+          // const idList = result.data.map(env => env.id);
+          // const valueList = result.data.map(env => env.value);
 
           resolve({
             success: true,
