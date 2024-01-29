@@ -63,23 +63,25 @@ function searchEnv(config, token, envName) {
         'Content-Type': 'application/json'
       }
     };
-
-    // 替换这里的 $ 根据你项目中实际使用的库或方法
-    $.ajax(request)
-      .done(response => {
-        const data = response.data;
-        const idList = data.map(env => env.id);
-        const valueList = data.map(env => env.value);
-
-        resolve({
-          success: true,
-          data: { ids: idList, values: valueList }
-        });
-
-      })
-      .fail(error => {
+    
+    $.get(request, (error, response, data) => {
+      if (error) {
         reject(`搜索环境变量失败：${error}`);
-      });
+      } else {
+        try {
+          const result = JSON.parse(data);
+          const idList = result.data.map(env => env.id);
+          const valueList = result.data.map(env => env.value);
+
+          resolve({
+            success: true,
+            data: { ids: idList, values: valueList }
+          });
+        } catch (parseError) {
+          reject(`解析环境变量响应失败：${parseError}`);
+        }
+      }
+    });
   });
 }
 
@@ -89,8 +91,8 @@ async function UpdateEnv(config, token, name, value, envId) {
       url: `${config.url}/open/envs`,
       method: 'PUT',
       headers: {
-        "Content-Type": "application/json;charset=UTF-8",
-        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
       },
       body: JSON.stringify({
         name: name,
