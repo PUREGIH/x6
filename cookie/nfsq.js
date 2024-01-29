@@ -23,7 +23,7 @@ let time = new Date();
     $notify("农夫山泉ck", $.name, result);
   } catch (error) {
     // 处理任何环节中出现的错误
-    console.error('出现错误：', error);
+    console.log('出现错误：', error);
     result = "更新失败: " + error.toString(); // 使用 result 捕获错误
     $notify("农夫山泉ck 更新失败", $.name, result);
   }
