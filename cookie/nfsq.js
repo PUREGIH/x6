@@ -70,10 +70,16 @@ function searchEnv(config, token, envName) {
         reject(`搜索环境变量失败：${error}`);
       } else {
         try {
-          console.log('API Response:', response.data);
-          // const result = JSON.parse(data);
-          // const idList = result.data.map(env => env.id);
-          // const valueList = result.data.map(env => env.value);
+          console.log('API Response:', data);
+          const result = JSON.parse(data);
+
+          if (!result.data || !Array.isArray(result.data)) {
+            reject('API返回格式不正确或没有数据');
+            return;
+          }
+
+          const idList = result.data.map(env => env.id);
+          const valueList = result.data.map(env => env.value);
 
           resolve({
             success: true,
@@ -81,7 +87,6 @@ function searchEnv(config, token, envName) {
           });
         } catch (parseError) {
           reject(`解析环境变量响应失败：${parseError}`);
-          console.log('API Response:', response.data);
         }
       }
     });
