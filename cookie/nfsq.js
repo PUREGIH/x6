@@ -1,21 +1,35 @@
-const $ = new Env("SMZDM_COOKIE");
+const $ = new Env("nfsqCookie");
 let config = $prefs.valueForKey("qlconf");
 let ql = JSON.parse(config);
 let token;
 let time = new Date();
 !(async () => {
-  if ($request.url.indexOf("smzdm" && "checkin") != -1) {
-    var Cookie = $request.headers.Cookie;
-    token = await getToken(ql);
-    var result = await SetEnvs(ql, token, $.name, Cookie);
-
-    $notify("什么值得买", $.name, result);
-    
+  try {
+    let result;
+    if ($request.url.includes("gateway.jmhd8.com")) {
+      var apiToken = $request.headers['apitoken']; // 从请求头中获取apitoken
+      let token = await getToken(ql);
+      // 通过searchEnv查找环境变量id
+      let response = await searchEnv(ql, token, $.name);
+      if (response.success && response.data.ids.length > 0) {
+        const envId = response.data.ids[0]; // 取第一个环境变量id
+        result = await UpdateEnv(ql, token, $.name, apiToken, envId); // 使用 result 捕获更新结果
+        console.log('环境变量更新成功：', result);
+      } else {
+        throw new Error('未找到对应的环境变量id。');
+      }
+    }
+    // 使用 result 发送通知，无论是成功还是失败
+    $notify("农夫山泉ck", $.name, result);
+  } catch (error) {
+    // 处理任何环节中出现的错误
+    console.error('出现错误：', error);
+    result = "更新失败: " + error.toString(); // 使用 result 捕获错误
+    $notify("农夫山泉ck 更新失败", $.name, result);
   }
 })()
-  .catch((err) => $.logErr(err))
-  .finally(() => $.done());
-
+.catch((err) => $.logErr(err))
+.finally(() => $.done());
 async function getToken(config) {
   return new Promise((resolve) => {
     var request = {
@@ -38,37 +52,66 @@ async function getToken(config) {
     });
   });
 }
-async function SetEnvs(config, token, name, cookie) {
-  return new Promise((resolve) => {
+
+function searchEnv(config, token, envName) {
+  return new Promise((resolve, reject) => {
     var request = {
-      url: config.url + "/open/envs",
+      url: `${config.url}/open/envs?searchValue=${encodeURIComponent(envName)}`,
+      method: 'GET',
       headers: {
-        accept: "application/json",
-        "Accept-Encoding": `gzip, deflate`,
-        "Content-Type": `application/json;charset=UTF-8`,
-        Connection: `keep-alive`,
-        "User-Agent": `Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) EdgiOS/109.0.1518.80 Version/16.0 Mobile/15E148 Safari/604.1`,
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    };
+
+    // 替换这里的 $ 根据你项目中实际使用的库或方法
+    $.ajax(request)
+      .done(response => {
+        const data = response.data;
+        const idList = data.map(env => env.id);
+        const valueList = data.map(env => env.value);
+
+        resolve({
+          success: true,
+          data: { ids: idList, values: valueList }
+        });
+
+      })
+      .fail(error => {
+        reject(`搜索环境变量失败：${error}`);
+      });
+  });
+}
+
+async function UpdateEnv(config, token, name, value, envId) {
+  return new Promise((resolve, reject) => {
+    var request = {
+      url: `${config.url}/open/envs`,
+      method: 'PUT',
+      headers: {
+        "Content-Type": "application/json;charset=UTF-8",
         Authorization: "Bearer " + token,
       },
-      body: `[{"value":"${cookie}","name":"${name}","remarks":"X6_${time.toLocaleString()}"}]`,
+      body: JSON.stringify({
+        name: name,
+        value: value,
+        id: envId
+      }),
     };
-    $.post(request, async (error, response, data) => {
+    $.put(request, async (error, response, data) => {
       try {
         if (error) {
-          console.log("⛔️API查询请求失败❌ ‼️‼️");
-          console.log(JSON.stringify(error));
+          reject("API请求失败：" + JSON.stringify(error));
         } else {
           let result = JSON.parse(data);
-          if (result.code == 200) {
-            resolve("CK添加成功");
+          if (result.code === 200) {
+            resolve("更新成功");
           } else {
-            resolve("CK添加失败,或已存在");
+            reject("更新失败：" + JSON.stringify(result));
           }
         }
       } catch (e) {
-        $.logErr(e, response);
-      } finally {
-        resolve();
+        reject(e);
       }
     });
   });
