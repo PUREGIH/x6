@@ -42,7 +42,8 @@ async function getToken(config) {
           console.log(JSON.stringify(error));
         } else {
           let result = JSON.parse(data);
-          resolve(result.data.token);
+          if (result.code === 200) { // 确保响应的结果是成功的
+            resolve(result.data.token);
         }
       } catch (e) {
         $.logErr(e, response);
@@ -80,6 +81,7 @@ function searchEnv(config, token, envName) {
           });
         } catch (parseError) {
           reject(`解析环境变量响应失败：${parseError}`);
+          console.log('API Response:', response.data);
         }
       }
     });
